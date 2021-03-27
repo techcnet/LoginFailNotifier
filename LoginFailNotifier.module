@@ -1,0 +1,140 @@
+<?php namespace ProcessWire;
+
+/**
+ * Login Fail Notifier
+ * Sends a notification email for each failed login attempt.
+ *
+ * @author tech-c.net
+ * @license Licensed under GNU/GPL v2
+ * @link https://tech-c.net/posts/login-fail-notifier-for-processwire/
+ * @version 1.0.1
+ * 
+ * @see Forum Thread: https://processwire.com/talk/topic/XXXXX-login-fail-notifier-for-processwire/
+ * @see Donate: https://www.paypal.me/techcnet/
+ */
+
+class LoginFailNotifier extends WireData implements Module, ConfigurableModule {
+
+  public static function getModuleInfo() {
+    return array(
+      'title' => 'Login Fail Notifier',
+      'summary' => 'Sends a notification email for each failed login attempt.',
+      'href' => 'https://tech-c.net/posts/login-fail-notifier-for-processwire/',
+      'author' => 'tech-c.net',
+      'version' => 101,
+      'icon' => 'exclamation-triangle',
+      'autoload' => true,
+      'singular' => true);
+  }
+
+  public function __construct() {
+    foreach(self::getDefaultData() as $key => $value) {
+      $this->$key = $value;
+    }
+  }
+
+  public function init() {
+    $this->session->addHookBefore('ProcessLogin::loginFailed', $this, 'LoginFailed'); 
+  }
+  
+  public function LoginFailed($event) {
+    $data = $this->modules->getModuleConfigData($this->className);
+    $defaults = $this->modules->get($this->className)->getDefaultData();
+    $data = array_merge($defaults, $data);
+
+    $email = $data['notification_email'];
+    if ($email != '') {
+      $bountary = md5(uniqid(time()));
+      $subject = $data['notification_subject'];
+      
+      $text = "A failed login attempt occurs.\r\n";
+      $text .= 'Server time: '.date('d-m-y h:i:s')."\r\n";
+      $post_vars = explode(',', $data['post_vars']);
+      foreach($post_vars as $var) {
+        if (isset($_POST[trim($var)])) {
+          $text .= $var.': '.wire('sanitizer')->text($_POST[trim($var)])."\r\n";
+        }
+      }
+      $server_vars = explode(',', $data['server_vars']);
+      foreach($server_vars as $var) {
+        if (isset($_SERVER[trim($var)])) {
+          $text .= $var.': '.wire('sanitizer')->text($_SERVER[trim($var)])."\r\n";
+        }
+      }
+
+      $header  = "From: ".$email."\n";
+      $header .= "MIME-Version: 1.0\n";
+      $header .= 'Content-Type: multipart/mixed; boundary="'.$bountary.'"';
+
+      $message  = "--".$bountary."\n";
+      $message .= "Content-type: text/plain; charset=utf-8\n";
+      $message .= "Content-Transfer-Encoding: base64\n";
+      $message .= "\n";
+      $message .= rtrim(chunk_split(base64_encode(html_entity_decode($text, ENT_NOQUOTES, 'UTF-8'))));
+      $message .= "\n";
+
+      $message .= "--".$bountary."--\n";
+
+      $subject = html_entity_decode($subject, ENT_NOQUOTES, 'UTF-8');
+      $preferences = array(
+        "input-charset" => "UTF-8",
+        "output-charset" => "UTF-8",
+        "line-length" => 76,
+        "line-break-chars" => "\n"
+      );
+      $preferences["scheme"] = "Q";      
+      $subject = iconv_mime_encode("", $subject, $preferences);
+      $subject = str_replace(": ", "", $subject);
+
+      if (mail($email, $subject, $message, $header, "-f".$email) === false) {
+        wire('log')->error($this->className.' Failed to send email.');
+      }
+    }
+  }
+
+  static public function getDefaultData() {
+    return array(
+      'notification_email' => wire('config')->adminEmail,
+      'notification_subject' => 'Failed login attempt at '.$_SERVER['SERVER_NAME'],
+      'post_vars' => 'login_name,login_pass',
+      'server_vars' => 'REMOTE_ADDR,HTTP_USER_AGENT'
+    );
+  }
+
+  static public function getModuleConfigInputfields(array $data) {
+    $fields = new InputfieldWrapper();
+    $modules = wire('modules');
+    $defaults = self::getDefaultData();
+    $data = array_merge($defaults, $data);
+
+    $field = $modules->get('InputfieldEmail');
+    $field->name = 'notification_email';
+    $field->label = __('Notification email');
+    $field->description = __('Specifies the email address to which the notification emails should be sent.');
+    $field->value = $data['notification_email'];
+    $fields->add($field);
+
+    $field = $modules->get('InputfieldText');
+    $field->name = 'notification_subject';
+    $field->label = __('Email subject');
+    $field->description = __('Specifies the subject line for the notification email.');
+    $field->value = $data['notification_subject'];
+    $fields->add($field);
+
+    $field = $modules->get('InputfieldText');
+    $field->name = 'post_vars';
+    $field->label = __('Post variables');
+    $field->description = __('Specifies the $_POST variables to be included in the notification email. Each variable must be separated by a comma. For example: login_name,login_pass');
+    $field->value = $data['post_vars'];
+    $fields->add($field);
+
+    $field = $modules->get('InputfieldText');
+    $field->name = 'server_vars';
+    $field->label = __('Server variables');
+    $field->description = __('Specifies the $_SERVER variables to be included in the notification email. Each variable must be separated by a comma. For example: REMOTE_ADDR,HTTP_USER_AGENT');
+    $field->value = $data['server_vars'];
+    $fields->add($field);
+
+    return $fields;
+  }
+}
