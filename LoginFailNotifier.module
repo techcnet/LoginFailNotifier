@@ -96,7 +96,7 @@ class LoginFailNotifier extends WireData implements Module, ConfigurableModule {
     return array(
       'notification_email' => wire('config')->adminEmail,
       'notification_subject' => 'Failed login attempt at '.$_SERVER['SERVER_NAME'],
-      'post_vars' => 'login_name,login_pass',
+      'post_vars' => 'login_name',
       'server_vars' => 'REMOTE_ADDR,HTTP_USER_AGENT'
     );
   }
