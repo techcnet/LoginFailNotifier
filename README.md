@@ -1,4 +1,4 @@
-# LoginFailNotifier
+# Login Fail Notifier
 
 This module for ProcessWire sends a notification email for each failed login attempt.
 
