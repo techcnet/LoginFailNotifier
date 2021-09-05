@@ -7,7 +7,7 @@
  * @author tech-c.net
  * @license Licensed under GNU/GPL v2
  * @link https://tech-c.net/posts/login-fail-notifier-for-processwire/
- * @version 1.0.1
+ * @version 1.0.2
  * 
  * @see Forum Thread: https://processwire.com/talk/topic/XXXXX-login-fail-notifier-for-processwire/
  * @see Donate: https://www.paypal.me/techcnet/
@@ -21,7 +21,7 @@ class LoginFailNotifier extends WireData implements Module, ConfigurableModule {
       'summary' => 'Sends a notification email for each failed login attempt.',
       'href' => 'https://tech-c.net/posts/login-fail-notifier-for-processwire/',
       'author' => 'tech-c.net',
-      'version' => 101,
+      'version' => 102,
       'icon' => 'exclamation-triangle',
       'autoload' => true,
       'singular' => true);
@@ -52,13 +52,13 @@ class LoginFailNotifier extends WireData implements Module, ConfigurableModule {
       $post_vars = explode(',', $data['post_vars']);
       foreach($post_vars as $var) {
         if (isset($_POST[trim($var)])) {
-          $text .= $var.': '.wire('sanitizer')->text($_POST[trim($var)])."\r\n";
+          $text .= $var.': '.wire('sanitizer')->entities($_POST[trim($var)])."\r\n";
         }
       }
       $server_vars = explode(',', $data['server_vars']);
       foreach($server_vars as $var) {
         if (isset($_SERVER[trim($var)])) {
-          $text .= $var.': '.wire('sanitizer')->text($_SERVER[trim($var)])."\r\n";
+          $text .= $var.': '.wire('sanitizer')->entities($_SERVER[trim($var)])."\r\n";
         }
       }
 
