@@ -7,10 +7,10 @@
  * @author tech-c.net
  * @license Licensed under GNU/GPL v2
  * @link https://tech-c.net/posts/login-fail-notifier-for-processwire/
- * @version 1.0.2
+ * @version 1.0.3
  * 
  * @see Forum Thread: https://processwire.com/talk/topic/26092-login-fail-notifier/
- * @see Donate: https://www.paypal.me/techcnet/
+ * @see Donate: https://tech-c.net/donation/
  */
 
 class LoginFailNotifier extends WireData implements Module, ConfigurableModule {
@@ -21,7 +21,7 @@ class LoginFailNotifier extends WireData implements Module, ConfigurableModule {
       'summary' => 'Sends a notification email for each failed login attempt.',
       'href' => 'https://tech-c.net/posts/login-fail-notifier-for-processwire/',
       'author' => 'tech-c.net',
-      'version' => 102,
+      'version' => 103,
       'icon' => 'exclamation-triangle',
       'autoload' => true,
       'singular' => true);
@@ -42,11 +42,7 @@ class LoginFailNotifier extends WireData implements Module, ConfigurableModule {
     $defaults = $this->modules->get($this->className)->getDefaultData();
     $data = array_merge($defaults, $data);
 
-    $email = $data['notification_email'];
-    if ($email != '') {
-      $bountary = md5(uniqid(time()));
-      $subject = $data['notification_subject'];
-      
+    if ($data['notification_email'] != '') {
       $text = "A failed login attempt occurs.\r\n";
       $text .= 'Server time: '.date('d-m-y h:i:s')."\r\n";
       $post_vars = explode(',', $data['post_vars']);
@@ -62,31 +58,13 @@ class LoginFailNotifier extends WireData implements Module, ConfigurableModule {
         }
       }
 
-      $header  = "From: ".$email."\n";
-      $header .= "MIME-Version: 1.0\n";
-      $header .= 'Content-Type: multipart/mixed; boundary="'.$bountary.'"';
-
-      $message  = "--".$bountary."\n";
-      $message .= "Content-type: text/plain; charset=utf-8\n";
-      $message .= "Content-Transfer-Encoding: base64\n";
-      $message .= "\n";
-      $message .= rtrim(chunk_split(base64_encode(html_entity_decode($text, ENT_NOQUOTES, 'UTF-8'))));
-      $message .= "\n";
-
-      $message .= "--".$bountary."--\n";
-
-      $subject = html_entity_decode($subject, ENT_NOQUOTES, 'UTF-8');
-      $preferences = array(
-        "input-charset" => "UTF-8",
-        "output-charset" => "UTF-8",
-        "line-length" => 76,
-        "line-break-chars" => "\n"
-      );
-      $preferences["scheme"] = "Q";      
-      $subject = iconv_mime_encode("", $subject, $preferences);
-      $subject = str_replace(": ", "", $subject);
-
-      if (mail($email, $subject, $message, $header, "-f".$email) === false) {
+      $mailer = wireMail();
+      $mailer->param('-f '.$data['notification_email']);
+      $mailer->from($data['notification_email']);
+      $mailer->to($data['notification_email']);
+      $mailer->subject($data['notification_subject']);
+      $mailer->body($text);
+      if ($mailer->send() < 1) {
         wire('log')->error($this->className.' Failed to send email.');
       }
     }
