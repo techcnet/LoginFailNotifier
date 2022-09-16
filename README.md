@@ -3,6 +3,7 @@
 ![GitHub](https://img.shields.io/github/license/techcnet/LoginFailNotifier)
 ![GitHub last commit](https://img.shields.io/github/last-commit/techcnet/LoginFailNotifier)
 [![PHPMD](https://github.com/techcnet/LoginFailNotifier/actions/workflows/phpmd.yml/badge.svg)](https://github.com/techcnet/LoginFailNotifier/actions/workflows/phpmd.yml)
+[![](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/techcnet)
 
 This module for ProcessWire sends a notification email for each failed login attempt. Similar modules exists already in the module directory of ProcessWire. However, this module is designed to notify, even if specified user doesn't exist.
 
