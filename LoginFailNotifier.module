@@ -7,7 +7,7 @@
  * @author tech-c.net
  * @license Licensed under GNU/GPL v2
  * @link https://tech-c.net/posts/login-fail-notifier-for-processwire/
- * @version 1.0.4
+ * @version 1.0.5
  * 
  * @see Forum Thread: https://processwire.com/talk/topic/26092-login-fail-notifier/
  * @see Donate: https://tech-c.net/donation/
@@ -21,7 +21,7 @@ class LoginFailNotifier extends WireData implements Module, ConfigurableModule {
       'summary' => 'Sends a notification email for each failed login attempt.',
       'href' => 'https://tech-c.net/posts/login-fail-notifier-for-processwire/',
       'author' => 'tech-c.net',
-      'version' => 104,
+      'version' => 105,
       'icon' => 'exclamation-triangle',
       'autoload' => true,
       'singular' => true);
@@ -72,11 +72,36 @@ class LoginFailNotifier extends WireData implements Module, ConfigurableModule {
     }
   }
 
+  static public function getAdminEmail() {
+    if (isset(wire('config')->adminEmail)) {
+      $adminEmail = wire('config')->adminEmail;
+    } else {
+      $adminEmail = 'Unknown';
+    }
+    return $adminEmail;
+  }
+
+  static public function getHostName() {
+    $hostName = '';
+    if (isset($_SERVER['SERVER_NAME'])) {
+      $hostName = wire('sanitizer')->entities($_SERVER['SERVER_NAME']);
+    }
+    if ($hostName == '') {
+      if (isset(wire('config')->httpHosts[0])) {
+        $hostName = wire('config')->httpHosts[0];
+      }
+    }
+    if ($hostName == '') {
+      $hostName = 'Unknown';
+    }
+    return $hostName;
+  }
+
   static public function getDefaultData() {
     return array(
-      'notification_email' => wire('config')->adminEmail,
+      'notification_email' => self::getAdminEmail(),
       'return_path' => '',
-      'notification_subject' => 'Failed login attempt at '.$_SERVER['SERVER_NAME'],
+      'notification_subject' => 'Failed login attempt at '.self::getHostName(),
       'post_vars' => 'login_name',
       'server_vars' => 'REMOTE_ADDR,HTTP_USER_AGENT'
     );
@@ -93,6 +118,7 @@ class LoginFailNotifier extends WireData implements Module, ConfigurableModule {
     $field->label = __('Notification email');
     $field->description = __('Specifies the email address to which the notification emails should be sent.');
     $field->value = $data['notification_email'];
+    $field->notes = __('Default').': '.$defaults['notification_email'];
     $fields->add($field);
 
     $field = $modules->get('InputfieldEmail');
@@ -107,6 +133,7 @@ class LoginFailNotifier extends WireData implements Module, ConfigurableModule {
     $field->label = __('Email subject');
     $field->description = __('Specifies the subject line for the notification email.');
     $field->value = $data['notification_subject'];
+    $field->notes = __('Default').': '.$defaults['notification_subject'];
     $fields->add($field);
 
     $field = $modules->get('InputfieldText');
@@ -114,6 +141,7 @@ class LoginFailNotifier extends WireData implements Module, ConfigurableModule {
     $field->label = __('Post variables');
     $field->description = __('Specifies the $_POST variables to be included in the notification email. Each variable must be separated by a comma. For example: login_name,login_pass');
     $field->value = $data['post_vars'];
+    $field->notes = __('Default').': '.$defaults['post_vars'];
     $fields->add($field);
 
     $field = $modules->get('InputfieldText');
@@ -121,6 +149,7 @@ class LoginFailNotifier extends WireData implements Module, ConfigurableModule {
     $field->label = __('Server variables');
     $field->description = __('Specifies the $_SERVER variables to be included in the notification email. Each variable must be separated by a comma. For example: REMOTE_ADDR,HTTP_USER_AGENT');
     $field->value = $data['server_vars'];
+    $field->notes = __('Default').': '.$defaults['server_vars'];
     $fields->add($field);
 
     return $fields;
